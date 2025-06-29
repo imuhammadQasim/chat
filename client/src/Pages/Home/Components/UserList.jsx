@@ -88,31 +88,39 @@ const UserList = ({ searchKey, socket }) => {
         return moment(chat.lastMessage.createdAt).format('hh:mm A');
     };
 
-    useEffect(() => {
-        socket.on('recieve-message', (message) => {
-            const selectedChat = store.getState().user.selectedChat;
-            const  allChats  = store.getState().user.allChats;
+useEffect(() => {
+    socket.on('recieve-message', (message) => {
+        const state = store.getState().user;
+        const selectedChatId = state.selectedChat?._id;
+        let updatedChats = [...state.allChats];
 
-            // Only increment unread count if the current chat is NOT open
-            if (selectedChat?._id !== message.chatId) {
-                const updatedChats = allChats.map((chat) => {
-                    if (chat._id === message.chatId) {
-                        return {
-                            ...chat,
-                            unreadMessageCount: (chat.unreadMessageCount || 0) + 1,
-                            lastMessage: message,
-                        };
-                    }
-                    return chat;
-                });
-
-                store.dispatch(setAllChat(updatedChats)); // Ensure this matches your reducer
+        // Update the relevant chat
+        updatedChats = updatedChats.map((chat) => {
+            if (chat._id === message.chatId) {
+                return {
+                    ...chat,
+                    lastMessage: message,
+                    unreadMessageCount:
+                        selectedChatId === message.chatId
+                            ? 0
+                            : (chat.unreadMessageCount || 0) + 1,
+                };
             }
+            return chat;
         });
 
-        return () => socket.off('recieve-message');
-    }, []);
+        // 🔄 Sort all chats by latest message timestamp
+        const sortedChats = updatedChats.sort((a, b) => {
+            const aTime = new Date(a.lastMessage?.createdAt || 0).getTime();
+            const bTime = new Date(b.lastMessage?.createdAt || 0).getTime();
+            return bTime - aTime; // descending: latest message on top
+        });
 
+        dispatch(setAllChat(sortedChats));
+    });
+
+    return () => socket.off('recieve-message');
+}, [dispatch, socket]);
 
 
     return (

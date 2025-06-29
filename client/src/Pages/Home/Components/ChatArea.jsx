@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { createNewMessage, getAllMessages } from '../../../apiCalls/message';
 import { showLoader, hideLoader } from '../../../redux/loaderSlice';
@@ -15,6 +15,7 @@ const ChatArea = ({ socket }) => {
 
   const [message, setMessage] = useState('');
   const [allMessages, setAllMessages] = useState([]);
+  const messageInputRef = useRef();
 
   const sendMessage = async (text) => {
     try {
@@ -97,27 +98,33 @@ const ChatArea = ({ socket }) => {
     }
   };
 
-useEffect(() => {
-  if (selectedChat?._id) {
-    getMessages();
-    if (selectedChat?.lastMessage?.senderId !== user._id) {
-      clearUnreadMessages();
+  useEffect(() => {
+    if (selectedChat?._id) {
+      getMessages();
+      if (selectedChat?.lastMessage?.senderId !== user._id) {
+        clearUnreadMessages();
+      }
+      if (messageInputRef.current) {
+        messageInputRef.current.focus();
+      }
     }
-  }
 
-  const handleIncomingMessage = (data) => {
-    const currentChat = store.getState().user.selectedChat;
-    if (currentChat?._id === data.chatId) {
-      setAllMessages((prevMsgs) => [...prevMsgs, data]);
-    }
-  };
+    const handleIncomingMessage = (data) => {
+      const currentChat = store.getState().user.selectedChat;
+      if (currentChat?._id === data.chatId) {
+        setAllMessages((prevMsgs) => [...prevMsgs, data]);
+      }
+    };
 
-  socket.on('recieve-message', handleIncomingMessage);
+    socket.on('recieve-message', handleIncomingMessage);
 
-  return () => {
-    socket.off('recieve-message', handleIncomingMessage);
-  };
-}, [selectedChat]);
+    return () => {
+      socket.off('recieve-message', handleIncomingMessage);
+    };
+
+
+  }, [selectedChat]);
+
 
   useEffect(() => {
     const msgContainer = document.getElementById('main-chat-area');
@@ -173,6 +180,7 @@ useEffect(() => {
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyPress={handleKeyPress}
+              ref={messageInputRef}
             />
             <button
               className="fa fa-paper-plane send-message-btn"
