@@ -7,7 +7,7 @@ import { setAllChat, setSelectedChat } from '../../../redux/userSlice';
 import moment from 'moment';
 import store from '../../../redux/store.js';
 
-const UserList = ({ searchKey, socket }) => {
+const UserList = ({ searchKey, socket, onlineUser }) => {
     const dispatch = useDispatch();
     const { allUsers, allChats, user: currentUser, selectedChat } = useSelector((state) => state.user);
 
@@ -88,39 +88,39 @@ const UserList = ({ searchKey, socket }) => {
         return moment(chat.lastMessage.createdAt).format('hh:mm A');
     };
 
-useEffect(() => {
-    socket.on('recieve-message', (message) => {
-        const state = store.getState().user;
-        const selectedChatId = state.selectedChat?._id;
-        let updatedChats = [...state.allChats];
+    useEffect(() => {
+        socket.on('recieve-message', (message) => {
+            const state = store.getState().user;
+            const selectedChatId = state.selectedChat?._id;
+            let updatedChats = [...state.allChats];
 
-        // Update the relevant chat
-        updatedChats = updatedChats.map((chat) => {
-            if (chat._id === message.chatId) {
-                return {
-                    ...chat,
-                    lastMessage: message,
-                    unreadMessageCount:
-                        selectedChatId === message.chatId
-                            ? 0
-                            : (chat.unreadMessageCount || 0) + 1,
-                };
-            }
-            return chat;
+            // Update the relevant chat
+            updatedChats = updatedChats.map((chat) => {
+                if (chat._id === message.chatId) {
+                    return {
+                        ...chat,
+                        lastMessage: message,
+                        unreadMessageCount:
+                            selectedChatId === message.chatId
+                                ? 0
+                                : (chat.unreadMessageCount || 0) + 1,
+                    };
+                }
+                return chat;
+            });
+
+            // 🔄 Sort all chats by latest message timestamp
+            const sortedChats = updatedChats.sort((a, b) => {
+                const aTime = new Date(a.lastMessage?.createdAt || 0).getTime();
+                const bTime = new Date(b.lastMessage?.createdAt || 0).getTime();
+                return bTime - aTime; // descending: latest message on top
+            });
+
+            dispatch(setAllChat(sortedChats));
         });
 
-        // 🔄 Sort all chats by latest message timestamp
-        const sortedChats = updatedChats.sort((a, b) => {
-            const aTime = new Date(a.lastMessage?.createdAt || 0).getTime();
-            const bTime = new Date(b.lastMessage?.createdAt || 0).getTime();
-            return bTime - aTime; // descending: latest message on top
-        });
-
-        dispatch(setAllChat(sortedChats));
-    });
-
-    return () => socket.off('recieve-message');
-}, [dispatch, socket]);
+        return () => socket.off('recieve-message');
+    }, [dispatch, socket]);
 
 
     return (
@@ -155,26 +155,43 @@ useEffect(() => {
                     >
                         <div className={isUserInSelectedChat(user._id) ? "selected-user" : "filtered-user"}>
                             <div className="filter-user-display">
-                                <div className={!isUserInSelectedChat(user._id) ? "user-default-profile-pic" : "selected-user-profile"}>
-                                    {user.firstname?.charAt(0).toUpperCase()}
-                                    {user.lastname?.charAt(0).toUpperCase()}
+
+                                <div
+                                    className={`user-profile-wrapper ${isUserInSelectedChat(user._id) ? "selected" : ""} ${user.profilePic ? "has-profile" : "no-profile"}`}
+                                >
+                                    <div className="profile-content">
+                                        {user.profilePic ? (
+                                            <img
+                                                src={user.profilePic}
+                                                alt="Profile"
+                                                className="profile-pic-img"
+                                            />
+                                        ) : (
+                                            <span className="user-initials">
+                                                {user.firstname?.charAt(0).toUpperCase()}
+                                                {user.lastname?.charAt(0).toUpperCase()}
+                                            </span>
+                                        )}
+                                        {onlineUser.includes(user._id) && <span className="online-dot" />}
+                                    </div>
                                 </div>
+
+
 
                                 <div className="filter-user-details">
                                     <div className="user-display-name">
-                                        {user.firstname.charAt(0).toUpperCase() + user.firstname.slice(1).toLowerCase()}
-                                        {' '}
-                                        {user.lastname.charAt(0).toUpperCase() + user.lastname.slice(1).toLowerCase()}
+                                        {`${user.firstname.charAt(0).toUpperCase() + user.firstname.slice(1).toLowerCase()} ${user.lastname.charAt(0).toUpperCase() + user.lastname.slice(1).toLowerCase()}`}
                                     </div>
                                     <div className="user-display-email">{getLastMessage(user)}</div>
                                 </div>
-                                <div className='time-message-count'>
-                                    {getUnreadMessageCount(user._id) && (
+
+                                <div className="time-message-count">
+                                    {getUnreadMessageCount(user._id) > 0 && (
                                         <span className="unread-count-badge">
                                             {getUnreadMessageCount(user._id)}
                                         </span>
                                     )}
-                                    <div className='lastmessage-time'>{getLastMessageTimestamp(user)}</div>
+                                    <div className="lastmessage-time">{getLastMessageTimestamp(user)}</div>
                                 </div>
 
                                 {!getChatWithUser(user._id) && (
@@ -192,6 +209,7 @@ useEffect(() => {
                                 )}
                             </div>
                         </div>
+
                     </div>
                 ))}
         </>

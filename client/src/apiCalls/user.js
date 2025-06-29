@@ -28,3 +28,25 @@ export const getAllUser = async () => {
         
     }
 }
+export const uploadProfilePic = async (image) => {
+  const token = localStorage.getItem('token'); 
+
+  try {
+    const response = await axiosInstance.post(
+      `/api/user/upload-profile-pic`,
+      { image },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error uploading profile pic:", error);
+    return {
+      success: false,
+      message: error.response?.data?.message || "Failed to upload profile pic",
+    };
+  }
+};

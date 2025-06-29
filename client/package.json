@@ -14,6 +14,7 @@
     "axios": "^1.10.0",
     "browser": "^0.2.6",
     "dom": "^0.0.3",
+    "emoji-picker-react": "^4.12.3",
     "moment": "^2.30.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

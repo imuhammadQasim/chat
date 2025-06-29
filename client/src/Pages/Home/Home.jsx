@@ -1,6 +1,6 @@
-import React, { useEffect } from 'react'
+import React, { useEffect , useState } from 'react'
 import './home.css'
-import Header from './Components/header.jsx'
+import Header from './Components/Header.jsx'
 import Sidebar from './Components/Sidebar.jsx'
 import ChatArea from './Components/ChatArea.jsx'
 import { useSelector } from 'react-redux'
@@ -11,37 +11,36 @@ const socket = io('http://localhost:5000', {
 });
 const Home = () => {
   const { selectedChat, user } = useSelector((state) => state.user);
-  //   const socket = io('http://localhost:5000', {
-  //   transports: ['websocket'],
-  // });
+  const [onlineUser, setOnlineUser] = useState([])
 
-
-  useEffect(() => {
+ useEffect(() => {
   if (!user) return;
 
+  // Join socket room and notify server of login
   socket.emit('join-room', user);
+  socket.emit('user-login', user._id);
 
-  // socket.emit('send-message', {
-  //   recipient: '685549f0c859081e0eab01d9', // This is a user ID now
-  //   msg: 'Hy Im Using React Js for Mern Stack Project.',
-  // });
+  // Listen for online users update
+  const handleOnlineUsers = (users) => setOnlineUser(users);
+  const handleOnlineUserUpdated = (users) => setOnlineUser(users);
 
-  // socket.on('recieve-msg', (data) => {
-  //   console.log('📩 New message received:', data);
-  // });
+  socket.on('online-user', handleOnlineUsers);
+  socket.on('online-user-updated', handleOnlineUserUpdated);
 
-  // // Cleanup to prevent multiple bindings
-  // return () => {
-  //   socket.off('recieve-msg');
-  // };
-}, [user]);
+  // ✅ Clean up on unmount
+  return () => {
+    socket.off('online-user', handleOnlineUsers);
+    socket.off('online-user-updated', handleOnlineUserUpdated);
+  };
+}, [user]); // ✅ Only run on `user` change
+
 
 
   return (
     <div className="home-page">
-      <Header />
+      <Header socket={socket}/>
       <div className="main-content">
-        <Sidebar socket= {socket}/>
+        <Sidebar socket={socket} onlineUser={onlineUser}/>
         {selectedChat && <ChatArea socket={socket} />}
       </div>
     </div>

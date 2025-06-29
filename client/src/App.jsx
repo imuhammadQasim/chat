@@ -8,7 +8,7 @@ import Signup from './Pages/signup/Signup.jsx';
 import Home from './Pages/Home/Home.jsx';
 import ProtectedRoutes from './components/ProtectedRoutes.jsx';
 import ChatLoader from './components/ChatLoader.jsx';
-
+import Profile from './Pages/profile/profile.jsx';
 function App() {
   const loader = useSelector((state) => state.loader);
 
@@ -26,6 +26,14 @@ function App() {
               element={
                 <ProtectedRoutes>
                   <Home />
+                </ProtectedRoutes>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoutes>
+                  <Profile />
                 </ProtectedRoutes>
               }
             />
